@@ -4,27 +4,24 @@ Created on Monday November 28th 2016
 @author: Alexis BONDU and Emmanuel-Lin TOULEMONDE
 """
 
-import os  
 import gc
-import shutil
 import glob
-import pandas as pd
-import random
-import time
-import pickle       # NEW
-import numpy as np
-from genericFunctions import partition_estimators, samplingDisjoinedIdsReturnIndex, indexDataFrame
-from timeHorizonLearner import timeHorizonLearner
-
 import itertools
+import os
+import pickle  # NEW
+import random
+import shutil
+import time
+import warnings
+
+import numpy as np
+import pandas as pd
 from sklearn.externals.joblib import Parallel, delayed
-import warnings 
-# For sklearn error log. 
-import sys  
-stdout = sys.stdout
-reload(sys)  
-sys.setdefaultencoding('utf8')
-sys.stdout = stdout # To make sure that printing is still working
+
+from .genericFunctions import partition_estimators, samplingDisjoinedIdsReturnIndex, indexDataFrame
+from .timeHorizonLearner import timeHorizonLearner
+
+__all__ = ["timeHorizonLearners"]
 
 
 ###################################################################################
@@ -92,7 +89,7 @@ class timeHorizonLearners:
                 raise ValueError('Your variable varNextPeriod is not well defined, it is pointing to the same period.')
         ## Initialization
         if verbose is True:
-            print "timeHorizonLearners.fit: I start by checking your parameters and initializing stuf. It is: " + str(time.time())
+            print("timeHorizonLearners.fit: I start by checking your parameters and initializing stuf. It is: " + str(time.time()))
             
         # Identifiy the number of weak learner to build
         if n_weaklearner is None:
@@ -113,7 +110,7 @@ class timeHorizonLearners:
         #  RQ: chaque batch a un sample size different ? PB ??? 
         ## Perform fitting using Parallel from sklearn library
         if verbose is True:
-            print "timeHorizonLearners.fit: I start to fit. It is: " + str(time.time())
+            print("timeHorizonLearners.fit: I start to fit. It is: " + str(time.time()))
         n_jobs, n_estimators, _ = partition_estimators(n_weaklearner, n_jobs)     
         total_n_estimators = sum(n_estimators)
         all_results = Parallel(n_jobs=n_jobs, verbose=verbose)(
@@ -134,7 +131,7 @@ class timeHorizonLearners:
         # Eval experts
         if rateVal > 0:
             if verbose is True:
-                print "timeHorizonLearners.fit: I eval your experts. It is: " + str(time.time())
+                print("timeHorizonLearners.fit: I eval your experts. It is: " + str(time.time()))
             self.evalutor(X.loc[I_val], y.loc[I_val], idFirstEstimator, n_weaklearner, n_jobs, verbose) 
         
     ## fit from a file
@@ -180,7 +177,7 @@ class timeHorizonLearners:
         #### first pass on the input datafile ####
         # ----------------------------------------
         if verbose is True:
-            print "timeHorizonLearner.fit_fromFile: I start by reading a few coluns to build my batches"
+            print("timeHorizonLearner.fit_fromFile: I start by reading a few coluns to build my batches")
         ## The data summary only contains the target variable and the IDs of the individuals
         data_summary = pd.read_csv(file_path, sep=separator, usecols=[self.varId, self.varCible])
         data_summary.sort(columns=self.varId)
@@ -198,7 +195,7 @@ class timeHorizonLearners:
         #### loop over the input file, reading by batch ####
         # --------------------------------------------------
         if verbose is True:
-            print "timeHorizonLearner.fit_fromFile: Now i start to learner from batches"
+            print("timeHorizonLearner.fit_fromFile: Now i start to learner from batches")
         n_batches = n_lines / batch_size + 1
         batch_size = n_lines / n_batches + 1 # Update batch size so that they are about the same shape
         batch_index = []
@@ -230,7 +227,7 @@ class timeHorizonLearners:
         for i in range(n_batches):
             ## Loging
             if verbose is True:
-                print "Compliting batch number %d of %d " % (i + 1, n_batches)
+                print("Compliting batch number %d of %d " % (i + 1, n_batches))
             
             ## Initialization
             IDs = batch_index[i]
@@ -361,13 +358,13 @@ class timeHorizonLearners:
         # X_deploy:  matrix with the same variables as X used for fit
         # jumps an int or a list of int: number of jumps you want to perform
         ## Sanity check
-        print "Due to a weird parallelization, one don't need to paralellize predict_proba with n_jobs. I set it to 1."
+        print("Due to a weird parallelization, one don't need to paralellize predict_proba with n_jobs. I set it to 1.")
         n_jobs = 1
         # It some times stop working (don't do anything, but don't finish either) when
         # n_jobs > 1.
         ## Initialization:
         if not self.__is_oob_score_set():
-            print "timeHorizonLearners.predict_proba: Warning: oob_score is 0.5 it might not have been computed, use the evaluator function to compute it!"
+            print("timeHorizonLearners.predict_proba: Warning: oob_score is 0.5 it might not have been computed, use the evaluator function to compute it!")
         
         ## Prepare parallelisation
         n_jobs, n_estimator, starts = partition_estimators(len(self.estimators), n_jobs)     
@@ -405,7 +402,7 @@ class timeHorizonLearners:
     def predict(self):
         """Predict time horizon learner"""
         # To-do
-        print "Pas implémenté"
+        print("Pas implémenté")
 
         
 
@@ -443,9 +440,9 @@ class timeHorizonLearners:
                 if tempSampleSize < self.sampleSize:
                     self.sampleSize = tempSampleSize
                     if logWarnings:
-                        print "Warning: timeHorizonLearners.__buildAndControlSampleSize I had to lower sampleSize to: " + str(self.sampleSize)
+                        print("Warning: timeHorizonLearners.__buildAndControlSampleSize I had to lower sampleSize to: " + str(self.sampleSize))
             else:
-                print "timeHorizonLearners.__buildAndControlSampleSize: WARNING: class" + str(elt) + "is present in class_weight but is missing in this y (fit or val)." 
+                print("timeHorizonLearners.__buildAndControlSampleSize: WARNING: class" + str(elt) + "is present in class_weight but is missing in this y (fit or val).")
                 # Warning: if this exception was raised, the real sampleSize will be smaller than self.sampleSizes
     
     ## set parameters for re-balancing the dataset by class value
@@ -616,7 +613,7 @@ def _parallel_build_estimators(n_estimators, X, y,
     """Private function used to build a batch of estimators within a job."""
     ## Log initialization
     if verbose is True:
-        print "timeHorizonLearner.fit distribution of value in each tree: " + str({elt: int(class_weight.get(elt, 0) * sampleSize) for elt in set(class_weight)})
+        print("timeHorizonLearner.fit distribution of value in each tree: " + str({elt: int(class_weight.get(elt, 0) * sampleSize) for elt in set(class_weight)}))
     # Build estimators
     estimators = []
     for i in range(n_estimators):
@@ -724,9 +721,5 @@ def _build_sample(y, sampleSize, class_weight):
         if len(elt_lines) != 0:
             sampled_lines += random.sample(elt_lines, int(sampleSize * class_weight[elt]))
         else:
-            print "_build_sample: Warning: class" + str(elt) + "is present is class_weight but is missing in this y."
+            print("_build_sample: Warning: class" + str(elt) + "is present is class_weight but is missing in this y.")
     return sampled_lines
-            
-## all list
-# ---------
-__all__ = ["timeHorizonLearner"]

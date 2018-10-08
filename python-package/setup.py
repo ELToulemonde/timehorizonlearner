@@ -4,12 +4,9 @@ Created on Monday November 28th 2016
 @author: Emmanuel-Lin TOULEMONDE and Alexis BONDU
 """
 
-import distutils.core as _dc
-import Cython.Build as _cb
-
-_dc.setup(
-    ext_modules = _cb.cythonize("timehorizonlearner/cythonGenerator.pyx")
-)
+#_dc.setup(
+#    ext_modules = _cb.cythonize("timehorizonlearner/cythonGenerator.pyx")
+#)
 
 
 from setuptools import setup, find_packages
